@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BugLens AI – Automated Web QA Analyzer</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #475569;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #38bdf8;
+      --radius: 0.5rem;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header .logo { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    header .tagline { color: var(--muted); font-size: 0.875rem; }
+
+    /* ── Main layout ─────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ── Input card ──────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { margin-bottom: 1rem; font-size: 1.1rem; }
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .input-row input[type="url"] {
+      flex: 1;
+      min-width: 260px;
+      padding: 0.625rem 0.875rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-row input[type="url"]:focus { border-color: var(--accent); }
+    .input-row button {
+      padding: 0.625rem 1.5rem;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .input-row button:hover:not(:disabled) { background: var(--accent-hover); }
+    .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .options-row {
+      margin-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+    .options-row input[type="checkbox"] { accent-color: var(--accent); }
+
+    /* ── Status bar ──────────────────────────────────────────────── */
+    #status-bar {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Score badge ─────────────────────────────────────────────── */
+    #score-section { display: none; margin-bottom: 1.5rem; }
+    .score-badge {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      font-size: 1.75rem;
+      font-weight: 700;
+      border: 4px solid var(--accent);
+    }
+    .score-badge .score-label { font-size: 0.65rem; font-weight: 400; color: var(--muted); }
+
+    /* ── Section cards ───────────────────────────────────────────── */
+    .section { margin-bottom: 1.5rem; }
+    .section h3 {
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.375rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--accent-hover);
+    }
+
+    /* ── Test results table ──────────────────────────────────────── */
+    .test-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .test-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface2);
+      border-radius: var(--radius);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .badge-passed { background: #14532d; color: var(--success); }
+    .badge-failed { background: #450a0a; color: var(--danger); }
+    .badge-skipped { background: #1c1917; color: var(--muted); }
+    .sev-critical { color: var(--danger); font-weight: 700; }
+    .sev-high     { color: #fb923c; }
+    .sev-medium   { color: var(--warning); }
+    .sev-low      { color: var(--info); }
+    .sev-info     { color: var(--muted); }
+    .test-name    { font-weight: 600; font-size: 0.9rem; }
+    .test-desc    { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+
+    /* ── AI insights ─────────────────────────────────────────────── */
+    .insight-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+    .insight-card {
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: 0.875rem 1rem;
+      border-left: 3px solid var(--accent);
+    }
+    .insight-card.sev-critical { border-left-color: var(--danger); }
+    .insight-card.sev-high     { border-left-color: #fb923c; }
+    .insight-card.sev-medium   { border-left-color: var(--warning); }
+    .insight-card.sev-low      { border-left-color: var(--info); }
+    .insight-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.35rem; font-size: 0.78rem; color: var(--muted);
+    }
+    .insight-issue { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .insight-rec   { font-size: 0.82rem; color: var(--muted); }
+
+    /* ── Summary / suggestions ───────────────────────────────────── */
+    .summary-box {
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: 1rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .suggestion-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+    .suggestion-list li {
+      font-size: 0.875rem;
+      color: var(--muted);
+      padding-left: 1rem;
+      position: relative;
+    }
+    .suggestion-list li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    /* ── Page elements ───────────────────────────────────────────── */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.75rem;
+    }
+    .meta-item {
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      text-align: center;
+    }
+    .meta-value { font-size: 1.5rem; font-weight: 700; color: var(--accent-hover); }
+    .meta-label { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+
+    /* ── Error ───────────────────────────────────────────────────── */
+    .error-box {
+      background: #450a0a;
+      border: 1px solid var(--danger);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      color: var(--danger);
+      font-size: 0.9rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔍 BugLens AI</div>
+  <div class="tagline">Automated Web QA Analyzer</div>
+</header>
+
+<main>
+  <!-- Input card -->
+  <div class="card">
+    <h2>Analyze a URL</h2>
+    <div class="input-row">
+      <input type="url" id="url-input" placeholder="https://example.com" autocomplete="off" />
+      <button id="analyze-btn" onclick="startAnalysis()">Analyze</button>
+    </div>
+    <div class="options-row">
+      <input type="checkbox" id="browser-mode" />
+      <label for="browser-mode">Use headless browser (Playwright) – enables JS-rendered content</label>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="status-bar">
+    <div class="spinner" id="spinner"></div>
+    <span id="status-text">Starting analysis…</span>
+  </div>
+
+  <!-- Results -->
+  <div id="results" style="display:none;">
+
+    <!-- Score -->
+    <div id="score-section" class="card" style="display:none;">
+      <h2>Overall Score</h2>
+      <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+        <div class="score-badge" id="score-badge">
+          <span id="score-value">–</span>
+          <span class="score-label">/ 100</span>
+        </div>
+        <div id="score-breakdown" style="font-size:0.85rem;color:var(--muted);"></div>
+      </div>
+    </div>
+
+    <!-- AI Summary -->
+    <div id="summary-section" class="section" style="display:none;">
+      <h3>AI Summary</h3>
+      <div class="summary-box" id="ai-summary"></div>
+    </div>
+
+    <!-- Test Results -->
+    <div id="tests-section" class="section" style="display:none;">
+      <h3>Automated Test Results</h3>
+      <ul class="test-list" id="test-list"></ul>
+    </div>
+
+    <!-- AI Insights -->
+    <div id="insights-section" class="section" style="display:none;">
+      <h3>AI Insights</h3>
+      <div class="insight-grid" id="insight-grid"></div>
+    </div>
+
+    <!-- Test Suggestions -->
+    <div id="suggestions-section" class="section" style="display:none;">
+      <h3>Test Suggestions</h3>
+      <ul class="suggestion-list" id="suggestions-list"></ul>
+    </div>
+
+    <!-- UX Recommendations -->
+    <div id="ux-section" class="section" style="display:none;">
+      <h3>UX Recommendations</h3>
+      <ul class="suggestion-list" id="ux-list"></ul>
+    </div>
+
+    <!-- Page Elements -->
+    <div id="elements-section" class="section" style="display:none;">
+      <h3>Page Elements</h3>
+      <div class="meta-grid" id="meta-grid"></div>
+    </div>
+
+    <!-- Error -->
+    <div id="error-section" class="section" style="display:none;">
+      <div class="error-box" id="error-message"></div>
+    </div>
+  </div>
+</main>
+
+<footer>BugLens AI — MVP · FastAPI + Playwright + OpenAI</footer>
+
+<script>
+  let pollTimer = null;
+
+  function setStatus(msg, spinning = true) {
+    const bar = document.getElementById('status-bar');
+    bar.style.display = 'flex';
+    document.getElementById('status-text').textContent = msg;
+    document.getElementById('spinner').style.display = spinning ? 'block' : 'none';
+  }
+
+  function hideStatus() {
+    document.getElementById('status-bar').style.display = 'none';
+  }
+
+  function setButtonState(disabled) {
+    document.getElementById('analyze-btn').disabled = disabled;
+  }
+
+  async function startAnalysis() {
+    const url = document.getElementById('url-input').value.trim();
+    if (!url) { alert('Please enter a URL.'); return; }
+
+    const useBrowser = document.getElementById('browser-mode').checked;
+
+    // Reset UI
+    document.getElementById('results').style.display = 'none';
+    ['score-section','summary-section','tests-section','insights-section',
+     'suggestions-section','ux-section','elements-section','error-section'].forEach(id => {
+      document.getElementById(id).style.display = 'none';
+    });
+
+    setButtonState(true);
+    setStatus('Submitting URL for analysis…');
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, use_browser: useBrowser })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || 'Failed to start analysis');
+      }
+
+      const data = await res.json();
+      document.getElementById('results').style.display = 'block';
+      pollResults(data.id);
+    } catch (e) {
+      showError(e.message);
+      setButtonState(false);
+      hideStatus();
+    }
+  }
+
+  function pollResults(id) {
+    setStatus('Analysis running… fetching and testing page…');
+
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/results/${id}`);
+        if (!res.ok) throw new Error('Polling failed');
+        const data = await res.json();
+
+        if (data.status === 'completed') {
+          clearInterval(pollTimer);
+          hideStatus();
+          setButtonState(false);
+          renderResults(data);
+        } else if (data.status === 'failed') {
+          clearInterval(pollTimer);
+          setButtonState(false);
+          hideStatus();
+          showError(data.error || 'Analysis failed');
+        } else {
+          setStatus('Analysis running… please wait…');
+        }
+      } catch (e) {
+        // ignore transient poll errors
+      }
+    }, 2000);
+  }
+
+  function renderResults(data) {
+    // Score
+    if (data.score) {
+      const sec = document.getElementById('score-section');
+      sec.style.display = 'block';
+      const val = document.getElementById('score-value');
+      val.textContent = data.score.total;
+      const badge = document.getElementById('score-badge');
+      badge.style.borderColor = scoreColor(data.score.total);
+      val.style.color = scoreColor(data.score.total);
+
+      const bd = document.getElementById('score-breakdown');
+      const entries = Object.entries(data.score.breakdown || {});
+      bd.innerHTML = entries.length
+        ? entries.map(([k, v]) => `<div>${k}: <span style="color:var(--danger)">${v}</span></div>`).join('')
+        : '<div style="color:var(--success)">No penalties</div>';
+    }
+
+    // AI Summary
+    if (data.ai_analysis?.summary) {
+      document.getElementById('summary-section').style.display = 'block';
+      document.getElementById('ai-summary').textContent = data.ai_analysis.summary;
+    }
+
+    // Test Results
+    if (data.test_results?.length) {
+      document.getElementById('tests-section').style.display = 'block';
+      const list = document.getElementById('test-list');
+      list.innerHTML = data.test_results.map(t => `
+        <li class="test-item">
+          <div>
+            <span class="badge badge-${t.status}">${t.status}</span>
+          </div>
+          <div>
+            <div class="test-name">
+              ${t.check_name}
+              <span class="sev-${t.severity}" style="font-size:0.75rem;font-weight:400;margin-left:0.4rem;">(${t.severity})</span>
+            </div>
+            <div class="test-desc">${t.description}</div>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    // AI Insights
+    if (data.ai_analysis?.insights?.length) {
+      document.getElementById('insights-section').style.display = 'block';
+      const grid = document.getElementById('insight-grid');
+      grid.innerHTML = data.ai_analysis.insights.map(i => `
+        <div class="insight-card sev-${i.severity}">
+          <div class="insight-header">
+            <span class="sev-${i.severity}">${i.severity.toUpperCase()}</span>
+            <span>·</span>
+            <span>${i.category}</span>
+            ${i.affected_element ? `<span>· <code style="font-size:0.75rem;">${i.affected_element}</code></span>` : ''}
+          </div>
+          <div class="insight-issue">${i.issue}</div>
+          <div class="insight-rec">${i.recommendation}</div>
+        </div>
+      `).join('');
+    }
+
+    // Test Suggestions
+    if (data.ai_analysis?.test_suggestions?.length) {
+      document.getElementById('suggestions-section').style.display = 'block';
+      document.getElementById('suggestions-list').innerHTML =
+        data.ai_analysis.test_suggestions.map(s => `<li>${s}</li>`).join('');
+    }
+
+    // UX Recommendations
+    if (data.ai_analysis?.ux_recommendations?.length) {
+      document.getElementById('ux-section').style.display = 'block';
+      document.getElementById('ux-list').innerHTML =
+        data.ai_analysis.ux_recommendations.map(s => `<li>${s}</li>`).join('');
+    }
+
+    // Page Elements
+    if (data.page_elements) {
+      const pe = data.page_elements;
+      document.getElementById('elements-section').style.display = 'block';
+      const grid = document.getElementById('meta-grid');
+      grid.innerHTML = [
+        { value: pe.forms?.length ?? 0, label: 'Forms' },
+        { value: pe.inputs?.length ?? 0, label: 'Standalone Inputs' },
+        { value: pe.buttons?.length ?? 0, label: 'Buttons' },
+        { value: pe.links?.length ?? 0, label: 'Links' },
+        { value: pe.images_without_alt?.length ?? 0, label: 'Missing Alt' },
+        { value: pe.has_viewport_meta ? '✓' : '✗', label: 'Viewport Meta' },
+      ].map(m => `
+        <div class="meta-item">
+          <div class="meta-value">${m.value}</div>
+          <div class="meta-label">${m.label}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  function showError(msg) {
+    document.getElementById('results').style.display = 'block';
+    const sec = document.getElementById('error-section');
+    sec.style.display = 'block';
+    document.getElementById('error-message').textContent = '⚠ ' + msg;
+  }
+
+  function scoreColor(score) {
+    if (score >= 80) return 'var(--success)';
+    if (score >= 50) return 'var(--warning)';
+    return 'var(--danger)';
+  }
+
+  // Allow Enter key to trigger analysis
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('url-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') startAnalysis();
+    });
+  });
+</script>
+</body>
+</html>
