@@ -3,19 +3,22 @@
 Two strategies are supported:
 - Static (default): plain httpx GET – fast, works for server-rendered pages.
 - Browser (optional): Playwright headless Chromium – handles JS-rendered content.
+
+All URLs are validated before fetching to prevent SSRF attacks.
 """
 
 from __future__ import annotations
 
-import asyncio
-
 from bs4 import BeautifulSoup
 
 from app.utils.http_client import get_client
+from app.utils.settings import settings
+from app.utils.url_validator import validate_url
 
 
 async def fetch_html_static(url: str) -> str:
     """Fetch raw HTML using a plain HTTP GET request."""
+    validate_url(url)
     client = get_client()
     response = await client.get(url)
     response.raise_for_status()
@@ -27,13 +30,14 @@ async def fetch_html_browser(url: str) -> str:
 
     Falls back to static fetch if Playwright is unavailable.
     """
+    validate_url(url)
     try:
         from playwright.async_api import async_playwright
 
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True)
             page = await browser.new_page()
-            await page.goto(url, wait_until="networkidle", timeout=30_000)
+            await page.goto(url, wait_until="networkidle", timeout=settings.browser_timeout_ms)
             html = await page.content()
             await browser.close()
             return html
@@ -52,7 +56,10 @@ async def fetch_and_parse(url: str, use_browser: bool = False) -> tuple[Beautifu
     When *use_browser* is True, Playwright is used (JS rendering).
     Status code is obtained from a separate HEAD/GET request so it is
     always available regardless of the fetch strategy.
+
+    Raises URLValidationError if the URL targets a private/internal host.
     """
+    validate_url(url)
     client = get_client()
 
     # Always record the actual HTTP status code via a direct request

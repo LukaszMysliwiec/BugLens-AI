@@ -45,7 +45,7 @@ async def check_broken_links(links: list[LinkInfo]) -> TestResult:
     broken = [
         {"url": url, "status_code": code}
         for url, code in results
-        if not (200 <= code < 400)
+        if code == 0 or code >= 400
     ]
 
     if broken:

@@ -45,6 +45,11 @@ async def start_analysis(url: str, use_browser: bool = False) -> str:
 
 async def run_analysis(analysis_id: str, url: str, use_browser: bool = False) -> None:
     """Execute the full QA pipeline and persist the final result."""
+    created_at: str | None = None
+    existing = await storage.get(analysis_id)
+    if existing:
+        created_at = existing.created_at
+
     try:
         # 1. Fetch & parse
         logger.info("[%s] Fetching %s", analysis_id, url)
@@ -73,7 +78,7 @@ async def run_analysis(analysis_id: str, url: str, use_browser: bool = False) ->
             test_results=test_results,
             ai_analysis=ai_analysis,
             score=score,
-            created_at=(await storage.get(analysis_id) or AnalysisResult(id=analysis_id, url=url)).created_at,
+            created_at=created_at,
             completed_at=datetime.now(timezone.utc).isoformat(),
         )
         await storage.save(completed_result)
@@ -81,13 +86,12 @@ async def run_analysis(analysis_id: str, url: str, use_browser: bool = False) ->
 
     except Exception as exc:
         logger.error("[%s] Analysis failed: %s", analysis_id, exc, exc_info=True)
-        existing = await storage.get(analysis_id)
         failed_result = AnalysisResult(
             id=analysis_id,
             url=url,
             status=AnalysisStatus.failed,
             error=str(exc),
-            created_at=existing.created_at if existing else None,
+            created_at=created_at,
             completed_at=datetime.now(timezone.utc).isoformat(),
         )
         await storage.save(failed_result)

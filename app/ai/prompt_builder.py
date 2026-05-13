@@ -14,9 +14,16 @@ import json
 from app.models.schemas import PageElements, TestResult
 
 # ---------------------------------------------------------------------------
+# Output size caps (keep in sync with the system prompt below)
+# ---------------------------------------------------------------------------
+MAX_INSIGHTS = 8
+MAX_TEST_SUGGESTIONS = 5
+MAX_UX_RECOMMENDATIONS = 5
+
+# ---------------------------------------------------------------------------
 # System prompt – sets the persona and output contract
 # ---------------------------------------------------------------------------
-SYSTEM_PROMPT = """You are a senior QA engineer and web accessibility specialist.
+SYSTEM_PROMPT = f"""You are a senior QA engineer and web accessibility specialist.
 You are given structured data extracted from a real web page along with the results of automated QA tests.
 Your job is to produce a concise, actionable analysis report in valid JSON.
 
@@ -27,22 +34,22 @@ Rules:
 - Respond ONLY with a JSON object matching the schema below – no markdown fences, no prose outside JSON.
 
 Output schema:
-{
+{{
   "summary": "<2-3 sentence plain-English summary of the overall page quality>",
   "insights": [
-    {
+    {{
       "category": "<accessibility|seo|performance|security|ux>",
       "severity": "<critical|high|medium|low|info>",
       "issue": "<concrete description of the problem>",
       "recommendation": "<concrete, actionable fix>",
       "affected_element": "<optional – tag/selector/url that is affected>"
-    }
+    }}
   ],
   "test_suggestions": ["<next automated test to write>", ...],
   "ux_recommendations": ["<specific UX improvement>", ...]
-}
+}}
 
-Keep insights list to a maximum of 8 items. Keep test_suggestions to a maximum of 5. Keep ux_recommendations to a maximum of 5.
+Keep insights list to a maximum of {MAX_INSIGHTS} items. Keep test_suggestions to a maximum of {MAX_TEST_SUGGESTIONS}. Keep ux_recommendations to a maximum of {MAX_UX_RECOMMENDATIONS}.
 """
 
 

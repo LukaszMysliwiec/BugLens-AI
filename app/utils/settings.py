@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     openai_max_tokens: int = 800
 
     http_timeout: float = 15.0
+    browser_timeout_ms: int = 20_000
     max_links_to_check: int = 20
 
 
