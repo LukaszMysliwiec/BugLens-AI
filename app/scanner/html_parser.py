@@ -18,9 +18,9 @@ from app.utils.url_validator import validate_url
 
 async def fetch_html_static(url: str) -> str:
     """Fetch raw HTML using a plain HTTP GET request."""
-    validate_url(url)
+    safe_url = validate_url(url)
     client = get_client()
-    response = await client.get(url)
+    response = await client.get(safe_url)
     response.raise_for_status()
     return response.text
 
@@ -30,19 +30,19 @@ async def fetch_html_browser(url: str) -> str:
 
     Falls back to static fetch if Playwright is unavailable.
     """
-    validate_url(url)
+    safe_url = validate_url(url)
     try:
         from playwright.async_api import async_playwright
 
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True)
             page = await browser.new_page()
-            await page.goto(url, wait_until="networkidle", timeout=settings.browser_timeout_ms)
+            await page.goto(safe_url, wait_until="networkidle", timeout=settings.browser_timeout_ms)
             html = await page.content()
             await browser.close()
             return html
     except Exception:
-        return await fetch_html_static(url)
+        return await fetch_html_static(safe_url)
 
 
 def parse_html(html: str) -> BeautifulSoup:
@@ -59,25 +59,25 @@ async def fetch_and_parse(url: str, use_browser: bool = False) -> tuple[Beautifu
 
     Raises URLValidationError if the URL targets a private/internal host.
     """
-    validate_url(url)
+    safe_url = validate_url(url)
     client = get_client()
 
     # Always record the actual HTTP status code via a direct request
     try:
-        head_response = await client.head(url)
+        head_response = await client.head(safe_url)
         status_code = head_response.status_code
     except Exception:
         status_code = 0
 
     if use_browser:
-        html = await fetch_html_browser(url)
+        html = await fetch_html_browser(safe_url)
     else:
         try:
-            response = await client.get(url)
+            response = await client.get(safe_url)
             status_code = response.status_code
             html = response.text
         except Exception as exc:
-            raise RuntimeError(f"Failed to fetch {url}: {exc}") from exc
+            raise RuntimeError(f"Failed to fetch {safe_url}: {exc}") from exc
 
     soup = parse_html(html)
     return soup, status_code

@@ -58,8 +58,11 @@ def _is_private_ip(hostname: str) -> bool:
     return False
 
 
-def validate_url(url: str) -> None:
+def validate_url(url: str) -> str:
     """Raise URLValidationError if *url* should not be fetched.
+
+    Returns the original *url* unchanged so callers can use the return value
+    as a sanitised reference, making the validation explicit in data flow.
 
     Intended to be called before every outbound HTTP request that originates
     from user input.
@@ -82,3 +85,5 @@ def validate_url(url: str) -> None:
         raise URLValidationError(
             f"Requests to private/internal hosts are not permitted (resolved host: {hostname})."
         )
+
+    return url
