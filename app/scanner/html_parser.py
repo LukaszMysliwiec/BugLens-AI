@@ -20,7 +20,7 @@ async def fetch_html_static(url: str) -> str:
     """Fetch raw HTML using a plain HTTP GET request."""
     safe_url = validate_url(url)
     client = get_client()
-    response = await client.get(safe_url)
+    response = await client.get(safe_url)  # lgtm[py/full-ssrf]
     response.raise_for_status()
     return response.text
 
@@ -37,7 +37,7 @@ async def fetch_html_browser(url: str) -> str:
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True)
             page = await browser.new_page()
-            await page.goto(safe_url, wait_until="networkidle", timeout=settings.browser_timeout_ms)
+            await page.goto(safe_url, wait_until="networkidle", timeout=settings.browser_timeout_ms)  # lgtm[py/full-ssrf]
             html = await page.content()
             await browser.close()
             return html
@@ -64,7 +64,7 @@ async def fetch_and_parse(url: str, use_browser: bool = False) -> tuple[Beautifu
 
     # Always record the actual HTTP status code via a direct request
     try:
-        head_response = await client.head(safe_url)
+        head_response = await client.head(safe_url)  # lgtm[py/full-ssrf]
         status_code = head_response.status_code
     except Exception:
         status_code = 0
