@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files (secrets stay out of image)
+.env
+
+# Git
+.git/
+.gitignore
+
+# Docs (not needed in image)
+*.md
+AGENTS.md
+ARCHITECTURE.md
+README.md
+
+# Test files
+conftest.py
+app/tests/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+

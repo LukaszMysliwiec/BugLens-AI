@@ -1,0 +1,28 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: buglens-ai:latest
+    container_name: buglens-ai
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-800}
+      - HTTP_TIMEOUT=${HTTP_TIMEOUT:-15.0}
+      - BROWSER_TIMEOUT_MS=${BROWSER_TIMEOUT_MS:-20000}
+      - MAX_LINKS_TO_CHECK=${MAX_LINKS_TO_CHECK:-20}
+    env_file:
+      - path: .env
+        required: false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+

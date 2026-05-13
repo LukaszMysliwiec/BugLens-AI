@@ -43,6 +43,7 @@
 ## Workflow developerski (sprawdzone na kodzie)
 - Konfiguracja zaleznosci: `pip install -r requirements.txt` (brak pakietow blokuje importy, np. `pydantic_settings`).
 - Uruchomienie API lokalnie: `uvicorn app.main:app --reload --port 8000`.
+- Uruchomienie przez Docker: `docker compose up --build` (aplikacja dostępna na `http://localhost:8000`).
 - Pelny zestaw testow: `pytest -v`.
 - Szybkie uruchomienie wybranego modulu: `pytest app/tests/test_api.py -v`.
 

@@ -298,7 +298,45 @@ pytest app/tests/test_checks.py -v # tylko checki
 
 ---
 
-## 11. Stack technologiczny
+## 11. Docker
+
+Projekt uruchamiany jest w kontenerze Docker. Pliki: `Dockerfile`, `docker-compose.yml`, `.dockerignore`.
+
+### Szybki start
+```bash
+# Zbuduj i uruchom (z hot-reload env z .env jeśli istnieje)
+docker compose up --build
+
+# Uruchom w tle
+docker compose up -d --build
+
+# Zatrzymaj
+docker compose down
+```
+
+### Dockerfile — dwuetapowy build
+| Stage | Cel |
+|---|---|
+| `builder` | Instalacja zależności pip z gcc (potrzebny przez lxml) |
+| `runtime` | Minimalna warstwa: aplikacja + Playwright chromium + non-root user |
+
+### Zmienne środowiskowe w Docker
+Przekazywane przez `docker-compose.yml` i opcjonalny plik `.env` (nie wbudowany w obraz):
+
+| Zmienna | Domyślnie |
+|---|---|
+| `OPENAI_API_KEY` | `""` (fallback AI działa bez klucza) |
+| `OPENAI_MODEL` | `gpt-4o-mini` |
+| `HTTP_TIMEOUT` | `15.0` |
+| `BROWSER_TIMEOUT_MS` | `20000` |
+| `MAX_LINKS_TO_CHECK` | `20` |
+
+### Healthcheck
+Docker sprawdza `/` co 30s; restart `unless-stopped`.
+
+---
+
+## 12. Stack technologiczny
 
 | Warstwa | Technologia |
 |---|---|
